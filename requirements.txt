@@ -1,0 +1,5 @@
+pydantic>=2.6.0
+pandas==2.2.3
+math-verify>=0.8.0
+openreward
+openai
