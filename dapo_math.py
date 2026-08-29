@@ -46,12 +46,23 @@ train_tasks: list[dict] = pd.read_parquet(_data_path).to_dict(orient="records")
 
 ## Environment
 
+
+# Reward for a submission made after the task has already been graded. Negative
+# so repeat submissions are actively discouraged, not merely left unscored.
+REPEAT_SUBMISSION_PENALTY = -0.1
+
+
 class DAPOMath(Environment):
     """DAPO-Math-17k: competition-level math problems with rule-based verification."""
 
     def __init__(self, task_spec: JSONObject, secrets: dict[str, str] = {}) -> None:
         super().__init__(task_spec)
         self.config = TaskSpec.model_validate(task_spec)
+
+        # Graded submissions this session. Only the first is rewarded: the tool
+        # prints the full solution back, so an uncapped tool would let the agent
+        # read it and resubmit.
+        self.submitted = 0
 
     async def get_prompt(self) -> List[TextBlock]:
         return [TextBlock(
@@ -61,8 +72,20 @@ class DAPOMath(Environment):
     @tool
     async def answer(self, params: AnswerParams) -> ToolOutput:
         """Submit your final answer for evaluation."""
+        if self.submitted > 0:
+            return ToolOutput(
+                metadata={"already_submitted": True, "submission_count": self.submitted},
+                blocks=[TextBlock(text="An answer has already been submitted for this task. "
+                                       "This episode is over: it is not re-graded, and repeat "
+                                       "submissions are penalised (reward -0.1).")],
+                reward=REPEAT_SUBMISSION_PENALTY,
+                finished=True,
+            )
+
         correct = verify_math_answer(params.answer, self.config.solution)
         reward = 1 if correct else 0
+
+        self.submitted += 1
 
         return ToolOutput(
             metadata={"correct": correct, "solution": self.config.solution},
