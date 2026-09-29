@@ -10,9 +10,13 @@ from math_verify import parse, verify
 
 ## Math answer parsing (from math environment pattern)
 
-def verify_math_answer(answer_one: str, answer_two: str) -> bool:
-    """Verify if two math answers are equivalent."""
-    return verify(parse_answer(answer_one), parse_answer(answer_two))
+def verify_math_answer(answer: str, reference: str) -> bool:
+    """Verify that a submitted answer matches the reference answer.
+
+    math_verify.verify is not symmetric (it may rewrite the gold side, e.g. an
+    inequality into an interval), so the reference goes first, as gold.
+    """
+    return verify(parse_answer(reference), parse_answer(answer))
 
 
 def parse_answer(answer: str) -> list:
