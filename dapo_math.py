@@ -10,9 +10,13 @@ from math_verify import parse, verify
 
 ## Math answer parsing (from math environment pattern)
 
-def verify_math_answer(answer_one: str, answer_two: str) -> bool:
-    """Verify if two math answers are equivalent."""
-    return verify(parse_answer(answer_one), parse_answer(answer_two))
+def verify_math_answer(answer: str, reference: str) -> bool:
+    """Verify that a submitted answer matches the reference answer.
+
+    math_verify.verify is not symmetric (it may rewrite the gold side, e.g. an
+    inequality into an interval), so the reference goes first, as gold.
+    """
+    return verify(parse_answer(reference), parse_answer(answer))
 
 
 def parse_answer(answer: str) -> list:
@@ -59,9 +63,8 @@ class DAPOMath(Environment):
         super().__init__(task_spec)
         self.config = TaskSpec.model_validate(task_spec)
 
-        # Graded submissions this session. Only the first is rewarded: the tool
-        # prints the full solution back, so an uncapped tool would let the agent
-        # read it and resubmit.
+        # Graded submissions this session. Only the first is rewarded: an
+        # uncapped tool would let the agent resubmit after a wrong answer.
         self.submitted = 0
 
     async def get_prompt(self) -> List[TextBlock]:
@@ -82,14 +85,26 @@ class DAPOMath(Environment):
                 finished=True,
             )
 
+        # An empty answer, or one with no number or expression to parse, is
+        # never compared with the solution, so it is not the graded attempt.
+        if not parse_answer(params.answer):
+            return ToolOutput(
+                metadata={"error": "unparseable_answer"},
+                blocks=[TextBlock(text="Your answer is empty or could not be parsed as a number or "
+                                       "expression, so nothing was graded. Submit your final number "
+                                       "or expression.")],
+                reward=0,
+                finished=False,
+            )
+
         correct = verify_math_answer(params.answer, self.config.solution)
         reward = 1 if correct else 0
 
         self.submitted += 1
 
         return ToolOutput(
-            metadata={"correct": correct, "solution": self.config.solution},
-            blocks=[TextBlock(text=f"Solution: {self.config.solution}")],
+            metadata={"correct": correct},
+            blocks=[TextBlock(text=f"{'Correct' if correct else 'Incorrect'}. Reward: {reward}")],
             reward=reward,
             finished=True,
         )
