@@ -59,9 +59,8 @@ class DAPOMath(Environment):
         super().__init__(task_spec)
         self.config = TaskSpec.model_validate(task_spec)
 
-        # Graded submissions this session. Only the first is rewarded: the tool
-        # prints the full solution back, so an uncapped tool would let the agent
-        # read it and resubmit.
+        # Graded submissions this session. Only the first is rewarded: an
+        # uncapped tool would let the agent resubmit after a wrong answer.
         self.submitted = 0
 
     async def get_prompt(self) -> List[TextBlock]:
@@ -88,8 +87,8 @@ class DAPOMath(Environment):
         self.submitted += 1
 
         return ToolOutput(
-            metadata={"correct": correct, "solution": self.config.solution},
-            blocks=[TextBlock(text=f"Solution: {self.config.solution}")],
+            metadata={"correct": correct},
+            blocks=[TextBlock(text=f"{'Correct' if correct else 'Incorrect'}. Reward: {reward}")],
             reward=reward,
             finished=True,
         )

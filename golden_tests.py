@@ -22,6 +22,7 @@ async def main():
 
             assert result.finished, f"Task not finished"
             assert result.reward == 1.0, f"Expected reward 1.0, got {result.reward} for task {task.task_spec['id']}"
+            assert "solution" not in (result.metadata or {}), f"Result metadata reveals the solution for task {task.task_spec['id']}"
 
     print("All golden tests passed!")
 
