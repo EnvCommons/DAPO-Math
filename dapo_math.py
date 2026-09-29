@@ -81,6 +81,18 @@ class DAPOMath(Environment):
                 finished=True,
             )
 
+        # An empty answer, or one with no number or expression to parse, is
+        # never compared with the solution, so it is not the graded attempt.
+        if not parse_answer(params.answer):
+            return ToolOutput(
+                metadata={"error": "unparseable_answer"},
+                blocks=[TextBlock(text="Your answer is empty or could not be parsed as a number or "
+                                       "expression, so nothing was graded. Submit your final number "
+                                       "or expression.")],
+                reward=0,
+                finished=False,
+            )
+
         correct = verify_math_answer(params.answer, self.config.solution)
         reward = 1 if correct else 0
 
