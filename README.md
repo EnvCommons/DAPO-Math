@@ -1,6 +1,6 @@
 # DAPO-Math
 
-[![OpenReward Environment](https://img.shields.io/badge/%E2%AD%90%20OpenReward-Environment-f7e6cc)](https://openreward.ai/GeneralReasoning/DAPOMath) [![Hugging Face Dataset](https://img.shields.io/badge/Hugging%20Face-Dataset-orange)](https://huggingface.co/datasets/BytedTsinghua-SIA/DAPO-Math-17k)
+[![OpenReward Environment](https://img.shields.io/badge/%E2%AD%90%20OpenReward-Environment-f7e6cc)](https://openreward.ai/GeneralReasoning/DAPO-Math) [![Hugging Face Dataset](https://img.shields.io/badge/Hugging%20Face-Dataset-orange)](https://huggingface.co/datasets/BytedTsinghua-SIA/DAPO-Math-17k)
 
 ## Description
 
@@ -18,30 +18,32 @@ Minimal. No sandbox or code execution is used. The environment runs rule-based a
 
 ## License
 
-[Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0), matching the original dataset license.
+[MIT](https://opensource.org/licenses/MIT). The underlying DAPO-Math-17k dataset is released under Apache 2.0.
 
 ## Tasks
 
-There are approximately 14,100 tasks in a single `train` split (English subset of the deduplicated DAPO-Math-17k dataset). Each task is a competition-level math problem with an integer answer.
+There are 14,116 tasks in a single `train` split (English subset of the deduplicated DAPO-Math-17k dataset). Each task is a competition-level math problem with an integer answer.
 
 ## Reward Structure
 
-Binary reward based on rule-based answer verification using the `math_verify` library (style: `rule-lighteval/MATH_v2`):
+Binary reward based on rule-based answer verification using the `math_verify` library:
 
 - **1.0** if the submitted answer is mathematically equivalent to the ground truth
 - **0.0** otherwise
+
+Only the first graded answer is rewarded and ends the episode; a repeat submission gets a reward of -0.1. An empty or unparseable answer is not graded and leaves the episode open.
 
 No LLM grader is used.
 
 ## Data
 
-Problems are sourced from the [DAPO-Math-17k](https://huggingface.co/datasets/BytedTsinghua-SIA/DAPO-Math-17k) dataset, using the deduplicated English subset provided by [open-r1/DAPO-Math-17k-Processed](https://huggingface.co/datasets/open-r1/DAPO-Math-17k-Processed). The dataset is loaded from HuggingFace at server startup.
+Problems are sourced from the [DAPO-Math-17k](https://huggingface.co/datasets/BytedTsinghua-SIA/DAPO-Math-17k) dataset, using the deduplicated English subset provided by [open-r1/DAPO-Math-17k-Processed](https://huggingface.co/datasets/open-r1/DAPO-Math-17k-Processed). The processed problems are stored as a Parquet file on the OpenReward platform.
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
-| `answer` | Submit a final answer for evaluation against the ground truth. |
+| `answer` | Submit a final answer for evaluation against the ground truth. Ends the episode once an answer is graded. |
 
 ## Time Horizon
 
