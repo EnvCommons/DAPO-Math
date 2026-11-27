@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import List
 
+import re
+
 import pandas as pd
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from openreward.environments import Environment, tool, JSONObject, ToolOutput, TextBlock
 from math_verify import parse, verify
@@ -35,8 +37,41 @@ class TaskSpec(BaseModel):
     solution: str
 
 
+_INT_RE = re.compile(r"[+-]?\d+\.?")
+_DEC_RE = re.compile(r"[+-]?\d*\.\d+")
+
+
 class AnswerParams(BaseModel):
+    """The agent's final answer.
+
+    A JSON number is accepted as well as a string (5 and "5" are the same
+    answer). Plain numeric strings are normalised (" +05 " -> "5", "7." -> "7",
+    "+2.50" -> "2.50"); any other string (fraction, expression, LaTeX, tuple)
+    is only stripped and otherwise left exactly as written.
+    """
+
     answer: str
+
+    @field_validator("answer", mode="before")
+    @classmethod
+    def _coerce_number(cls, v):
+        if isinstance(v, bool):
+            return v  # not a number answer: let validation reject it
+        if isinstance(v, int):
+            return str(v)
+        if isinstance(v, float):
+            return str(int(v)) if v.is_integer() and abs(v) < 1e15 else repr(v)
+        if isinstance(v, str):
+            s = v.strip()
+            if _INT_RE.fullmatch(s):
+                try:
+                    return str(int(s.rstrip(".")))
+                except ValueError:  # digit string beyond Python's int limit
+                    return s
+            if _DEC_RE.fullmatch(s):
+                return s.lstrip("+")
+            return s
+        return v
 
 
 ## Dataset Loading
